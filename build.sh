@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -ex
 
 # This script builds the plugin in correct JRuby environment using dockerized build environment
@@ -18,7 +18,6 @@ if [ ! "$1" = "true" ]; then
   HOME_DIR="$( cd ~/ && pwd )"
   docker run -ti --rm $([ -t 0 ] && echo "-ti") \
     -v "$DIR":"$DIR" \
-    -v "/home/tommi/.ssh":"/root/.ssh" \
     -w="$DIR" \
     -e "HOST_USER_ID=$USER_ID" \
     -e "LOGSTASH_PATH=/usr/share/logstash" \
