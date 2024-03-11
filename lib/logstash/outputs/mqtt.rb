@@ -10,9 +10,9 @@ require "mqtt"
 # * Publish messages to a topic
 # * TSL/SSL connection to MQTT server (optional)
 # * Message publishing to a topic
-# * QoS levels 0 and 1 (note that QoS 2 is not currently supported due to https://github.com/njh/ruby-mqtt[ruby-mqtt] library limitations)
+# * QoS levels 0, 1 or 2
 # * Fault tolerance for network shortages, however not optimzied for performance since it takes a new connection for each event (or a bunch of events) to be published
-# * MQTT protocol version 3.1.0
+# * MQTT protocol version 3.1.1
 #
 # Example publishing to test.mosquitto.org:
 # [source,ruby]
@@ -20,7 +20,7 @@ require "mqtt"
 # output {
 #   mqtt {
 #     host => "test.mosquitto.org"
-#     port => 8883
+#     port => 1883
 #     topic => "hello"
 #   }
 # }
@@ -65,17 +65,25 @@ class LogStash::Outputs::MQTT < LogStash::Outputs::Base
   config :host, :validate => :string, :required => true
 
   # Port to connect to
-  config :port, :validate => :number, :default => 8883
+  # if ssl on it defaults to 8883
+  # if ssl off it defaults to 1883
+  config :port, :validate => :number
 
   # Topic that the messages will be published to
   config :topic, :validate => :string, :required => true
+
+  # Topic that the messages will be published to
+  config :version, :validate => :string, :default => "3.1.1"
+
+  # Set the 'Clean Session' flag when connecting? (default is true)
+  config :clean_session, :validate => :boolean, :default => true
 
   # Retain flag of the published message
   # If true, the message will be stored by the server and be sent immediately to each subscribing client
   # so that the subscribing client doesn't have to wait until a publishing client sends the next update
   config :retain, :validate => :boolean, :default => false
 
-  # QoS of the published message, can be either 0 (at most once) or 1 (at least once)
+  # QoS of the published message, can be either 0 (at most once),1 (at least once), or 2 (exactly once)
   config :qos, :validate => :number, :default => 0
 
   # Client identifier (generated automatically if not given)
@@ -104,16 +112,35 @@ class LogStash::Outputs::MQTT < LogStash::Outputs::Base
 
   # Time Keep alive connexion between ping to remote servers
   config :keep_alive, :validate => :number, :default => 15
+ 
+  # LWT settings
+      # The topic that the Will message is published to
+  config :will_topic, :validate => :string
+
+  # Contents of message that is sent by server when client disconnect
+  config :will_payload, :validate => :string
+
+  config :will_qos, :validate => :number, :default => 0
+
+    # If the Will message should be retain by the server after it is sent
+  config :will_retain, :validate => :boolean
 
 
 
   def register
     @options = {
       :host => @host
+      :clean_session => @clean_session
+      :version => @version
+      :keep_alive => @keep_alive
     }
+
     if @port
-      @options[:port] = @port
+      @options[:port] => @port
+    else
+      @options[:port] => 8883 if @ssl else 1883
     end
+
     if @client_id
       @options[:client_id] = @client_id
     end
@@ -135,8 +162,18 @@ class LogStash::Outputs::MQTT < LogStash::Outputs::Base
     if @ca_file
       @options[:ca_file] = @ca_file
     end
-    if @keep_alive
-      @options[:keep_alive] = @keep_alive
+
+    if @will_topic
+      @options[:will_topic] = @will_topic
+    end
+    if @will_payload
+      @options[:will_payload] = @will_payload
+    end
+    if @will_qos
+      @options[:will_qos] = @will_qos
+    end
+    if @will_retain
+      @options[:will_retain] = @will_retain
     end
 
     # Encode events using the given codec
