@@ -129,16 +129,16 @@ class LogStash::Outputs::MQTT < LogStash::Outputs::Base
 
   def register
     @options = {
-      :host => @host
-      :clean_session => @clean_session
-      :version => @version
+      :host => @host,
+      :clean_session => @clean_session,
+      :version => @version,
       :keep_alive => @keep_alive
     }
 
     if @port
-      @options[:port] => @port
+      @options[:port] = @port
     else
-      @options[:port] => 8883 if @ssl else 1883
+      @options[:port] = @ssl ? 8883 : 1883
     end
 
     if @client_id
