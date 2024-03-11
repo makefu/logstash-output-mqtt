@@ -16,6 +16,11 @@ describe LogStash::Outputs::MQTT do
 
   settings = {
     "host" => "test.mosquitto.org",
+    "clean_session" =>true,
+    "keep_alive" =>15,
+    "port" =>1883,
+    "version" =>"3.1.1",
+    "will_qos" =>0,
     "topic" => "hello"
   }
   let(:output) { LogStash::Outputs::MQTT.new(settings) }
@@ -29,7 +34,11 @@ describe LogStash::Outputs::MQTT do
     it "connects and publishes with correct arguments" do
       expect(MQTT::Client).to receive(:connect).with(
         :host => "test.mosquitto.org",
-        :port => 8883
+        :clean_session=>true,
+        :keep_alive=>15,
+        :port=>1883,
+        :version=>"3.1.1",
+        :will_qos=>0
       ).and_return(stub_client)
       expect(stub_client).to receive(:publish).with("hello", encoded_event, false, 0)
       output.receive(sample_event)
@@ -40,7 +49,11 @@ describe LogStash::Outputs::MQTT do
     it "connects once and publishes all messages" do
       expect(MQTT::Client).to receive(:connect).once.with(
         :host => "test.mosquitto.org",
-        :port => 8883
+        :clean_session=>true,
+        :keep_alive=>15,
+        :port=>1883,
+        :version=>"3.1.1",
+        :will_qos=>0
       ).and_return(stub_client)
       expect(stub_client).to receive(:publish).exactly(3).times.with("hello", encoded_event, false, 0)
       three_events = [sample_event, sample_event, sample_event]
@@ -59,7 +72,12 @@ describe "Test subtopic:" do
 
   settings = {
     "host" => "test.mosquitto.org",
-    "topic" => "hello/%{subtopic}"
+    "topic" => "hello/%{subtopic}",
+    "clean_session"=>true,
+    "keep_alive"=>15,
+    "port"=>1883,
+    "version"=>"3.1.1",
+    "will_qos"=>0
   }
   let(:output) { LogStash::Outputs::MQTT.new(settings) }
   let(:stub_client) { instance_double(MQTT::Client) }
@@ -72,7 +90,11 @@ describe "Test subtopic:" do
     it "connects and publishes" do
       expect(MQTT::Client).to receive(:connect).with(
         :host => "test.mosquitto.org",
-        :port => 8883
+        :clean_session=>true,
+        :keep_alive=>15,
+        :port=>1883,
+        :version=>"3.1.1",
+        :will_qos=>0
       ).and_return(stub_client)
       expect(stub_client).to receive(:publish).with("hello/mysubtopic", encoded_event, false, 0)
       output.receive(sample_event)
